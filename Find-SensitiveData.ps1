@@ -1,16 +1,10 @@
 <#
-.SYNOPSIS
-	Finds sensitive data in file shares
-.DESCRIPTION
-	Finds sensitive data in file shares matching a certain pattern. Documents searched: txt, docx, doc, xlsx, xls, ps1, bat, ppt, pptx
-.EXAMPLE ???
-	PS/> ???
-.NOTES
-	None
-.LINK
-	None
-#>
+If you need to, here is the sensitive data finder code reduced to 1 line of syntax for PowerShell:
 
+PS:\> Get-ChildItem -Path '\\<host>\<share>' -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
+
+This doesn't provide really any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
+#>
 
 function Get-FilePaths {
 
