@@ -231,7 +231,7 @@ function Find-SensitiveData {
 			}
 			While (($Jobs | Where-Object { -not $_.Result.IsCompleted }).Count -gt 0)
 
-			$SleepSeconds = 10
+			$SleepSeconds = 1
 			Write-Verbose "[*] $((Get-Date).ToString('T')) : $($RegexPattern.Name) - Waiting $SleepSeconds seconds for final cleanup..."
 
 			# cleanup- make sure we didn't miss anything
