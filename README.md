@@ -7,6 +7,8 @@ PowerShell script to search a file share for potential sensitive data patterns. 
 - SSN
 - Password
 - Domain Prefix (Ex. MIDGAR\)
+- AWS Keys (Access and Secret)
+- MachineKey
 
 ## Usage
 
@@ -29,3 +31,4 @@ PowerShell script to search a file share for potential sensitive data patterns. 
 - [ ] Add more patterns
 - [ ] Add flexibility to multi-threading
 - [ ] Add ability to find file shares to search through
+- [ ] Limit searches to maximum file sizes based on extension
