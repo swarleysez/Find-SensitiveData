@@ -1,10 +1,11 @@
 <#
-If you need to, here is the sensitive data finder code reduced to 1 line of syntax for PowerShell:
+	If you need to, here is the sensitive data finder code reduced to 1 line of syntax for PowerShell:
 
-PS:\> Get-ChildItem -Path '\\<host>\<share>' -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
-
-This doesn't provide really any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
+	PS:\> Get-ChildItem -Path '\\<host>\<share>' -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
+	
+	This doesn't provide really any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
 #>
+
 
 function Get-FilePaths {
 
@@ -97,6 +98,9 @@ function Find-SensitiveData {
 		SSN 			= '\b\d{3}-\d{2}-\d{4}\b'
 		Password 		= '(;|)(?i)\bpassword\b( |)=( |)'
 		DomainPrefix	= "$env:USERDOMAIN\\"
+		MachineKey		= 'machinekey'
+		AWSKey			= '(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])'
+		AWSSecret		= '(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'
 	}
 	
 	# If $BaseDirectory doesn't exist, then try to create it
