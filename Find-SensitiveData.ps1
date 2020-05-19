@@ -46,7 +46,7 @@ function Get-FilePaths {
 	$script:ShareRootDirectory = (($SharePath.Split('\'))[2..3]) -join '-'
 
 	# Test if the specified file containing filepaths already exists
-	$script:DefaultOutputFile = "$($BaseDirectory)\$CurrentUser-FilePaths-$($ShareRootDirectory).txt"
+	$script:DefaultOutputFile = "$($BaseDirectory)\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt"
 	$TextFileExist = Test-Path -Path $DefaultOutputFile
 	
 
@@ -58,11 +58,11 @@ function Get-FilePaths {
 			Remove-Item $DefaultOutputFile
 		}
 		
-		# Recursively get ONLY files in provided path, return the full path to each file, and write to current directory.
-		# Write data to specified filename (Default = '.\<root-share-dir>-filepaths.txt') in current directory.
+		# Recursively get ONLY files in provided path under 10MB in size, return the full path to each file, and write to current directory.
+		# Write data to specified filename (Default = '.\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt') in current directory.
 		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $DefaultOutputFile"
 		
-		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd' -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | foreach {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
+		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd' -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
 	}
 	else
 	{
@@ -99,8 +99,9 @@ function Find-SensitiveData {
 		Password 		= '(;|)(?i)\bpassword\b( |)=( |)'
 		DomainPrefix	= "$env:USERDOMAIN\\"
 		MachineKey		= 'machinekey'
-		AWSKey			= '(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])'
-		AWSSecret		= '(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'
+		AWSKeys			= '\baws(_| |:|=)'
+		#AWSKey			= '(?<![A-Za-z0-9])[A-Z0-9]{20}(?![A-Za-z0-9])'				---> Causing too many false positives
+		#AWSSecret		= '(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'	---> Causing too many false positives
 	}
 	
 	# If $BaseDirectory doesn't exist, then try to create it
@@ -123,7 +124,7 @@ function Find-SensitiveData {
 		Get-FilePaths -SharePath $SharePath -BaseDirectory $BaseDirectory -Force
 		
 		# Remove previous data files
-		$PreviousData = "$($BaseDirectory)\$CurrentUser-PotentialData-*$($ShareRootDirectory)*.txt"
+		$PreviousData = "$($BaseDirectory)\PotentialData-*$($ShareRootDirectory)-$CurrentUser.txt"
 		if (Test-Path -Path $PreviousData)
 		{
 			Write-Output "[!] $((Get-Date).ToString('T')) : '-Force' was used. Now removing previous data files"
@@ -187,7 +188,7 @@ function Find-SensitiveData {
 					Param(
 						$FilePath,
 						$ShareRootDirectory,
-						$RegexPatternValue
+						$RegexPatternValue						
 					)
 				
 					# Search for regex pattern in file and select only the first match
@@ -227,7 +228,7 @@ function Find-SensitiveData {
 					
 					if ($JobOutput)
 					{
-						$OutFile = "$($BaseDirectory)\$CurrentUser-PotentialData-$($RegexPattern.Name)-$($ShareRootDirectory).txt"
+						$OutFile = "$($BaseDirectory)\PotentialData-$($RegexPattern.Name)-$($ShareRootDirectory)-$($CurrentUser).txt"
 						Add-Content -Value $JobOutput -Path $OutFile
 					}
 				}
@@ -248,7 +249,7 @@ function Find-SensitiveData {
 					
 					if ($JobOutput)
 					{
-						$OutFile = "$($BaseDirectory)\$CurrentUser-PotentialData-$($RegexPattern.Name)-$($ShareRootDirectory).txt"
+						$OutFile = "$($BaseDirectory)\PotentialData-$($RegexPattern.Name)-$($ShareRootDirectory)-$($CurrentUser).txt"
 						Add-Content -Value $JobOutput -Path $OutFile
 					}
 					$Job.PS.Dispose()
@@ -287,7 +288,7 @@ function Remove-SensitiveData {
 	Param(
 		[Parameter(Mandatory = $false)]
 		[String[]]
-		$DataFiles = @("*-PotentialData-*.txt","*-FilePaths-*.txt"),
+		$DataFiles = @("PotentialData-*.txt","FilePaths-*.txt"),
 		
 		[Parameter(Mandatory = $false)]
 		[String]
@@ -306,4 +307,3 @@ function Remove-SensitiveData {
 		}
 	}
 }
-
