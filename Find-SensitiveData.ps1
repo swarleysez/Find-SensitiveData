@@ -62,7 +62,7 @@ function Get-FilePaths {
 		# Write data to specified filename (Default = '.\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt') in current directory.
 		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $DefaultOutputFile"
 		
-		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd','*.xml* -Recurse -ErrorAction SilentlyContinue | Where-Object {[Int64]$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
+		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd','*.xml' -Recurse -ErrorAction SilentlyContinue | Where-Object {[Int64]$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
 	}
 	else
 	{
