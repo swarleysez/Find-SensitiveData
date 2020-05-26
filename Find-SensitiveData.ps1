@@ -74,7 +74,7 @@ function Get-FilePaths {
 
 		# Importing CSV, filtering, and assigning to $FilePaths array
 		$FilePaths = @()
-		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.xml','')
+		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.pem','.ppk','')
         $FileData = Import-Csv -Path $BaseOutputFile -Delimiter ','
                 
         foreach ($File in $FileData)
@@ -123,8 +123,9 @@ function Find-SensitiveData {
 		SSN 			= '\b\d{3}-\d{2}-\d{4}\b'
 		Password 		= '(;|)(?i)\bpassword\b( |)=( |)'
 		DomainPrefix	= "$env:USERDOMAIN\\"
-		MachineKey		= 'machinekey'
+		MachineKey		= '\bmachinekey\b'
 		AWSAccessKey	= '\bAKIA[A-Z0-9]{16}\b'
+		SSHKey			= '\s*(\bBEGIN\b).*(PRIVATE KEY\b)\s*'
 		#AWSSecret		= 'aws_secret_access_key'
 	}
 	
@@ -143,13 +144,6 @@ function Find-SensitiveData {
 	}
 
 	# Execute 'Get-FilePaths' function to generate a list of files to search.
-
-	# Remove previous data files
-	$PreviousData = $BaseDirectory + "\PotentialData-" + $ShareRootDirectory + '-' + $CurrentUser + '.txt'
-	if (Test-Path -Path $PreviousData)
-	{
-		Remove-Item $PreviousData
-	}
 
 	if ($Force)
 	{
@@ -171,7 +165,14 @@ function Find-SensitiveData {
 		foreach ($RegexPattern in $RegexPatterns.GetEnumerator())
 		{
 			Write-Output "[*] $((Get-Date).ToString('T')) : $($RegexPattern.Name) - Search started for pattern"
-						
+
+			# Remove previous data files
+			$PreviousData = $BaseDirectory + "\PotentialData-" + $RegexPattern.Name + '-' + $ShareRootDirectory + '-' + $CurrentUser + '.txt'
+			if (Test-Path -Path $PreviousData)
+			{
+				Remove-Item $PreviousData
+			}
+
 			# Region Runspace Pool
 			[void][runspacefactory]::CreateRunspacePool()
 			$SessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
