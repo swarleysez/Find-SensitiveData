@@ -65,7 +65,7 @@ function Get-FilePaths {
 	{
 		# Recursively get ONLY files in provided path under 10MB in size, return the full path to each file, and write to current directory.
 		# Write data to specified filename (Default = '.\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt') in current directory.
-		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $DefaultOutputFile"
+		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $BaseOutputFile"
 		
         if (!$BaseFileExist)
         {
@@ -73,6 +73,8 @@ function Get-FilePaths {
         }
 
 		# Importing CSV, filtering, and assigning to $FilePaths array
+		Write-Output "[*] $((Get-Date).ToString('T')) : Filtering files in $BaseOutputFile adding to the results to $DefaultOutputFile"
+
 		$FilePaths = @()
 		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.pem','.ppk','')
         $FileData = Import-Csv -Path $BaseOutputFile -Delimiter ','
