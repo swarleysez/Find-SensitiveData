@@ -62,7 +62,7 @@ function Get-FilePaths {
 		# Write data to specified filename (Default = '.\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt') in current directory.
 		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $DefaultOutputFile"
 		
-		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd' -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
+		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd' -Recurse -ErrorAction SilentlyContinue | Where-Object {[Int64]$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
 	}
 	else
 	{
@@ -99,8 +99,7 @@ function Find-SensitiveData {
 		Password 		= '(;|)(?i)\bpassword\b( |)=( |)'
 		DomainPrefix	= "$env:USERDOMAIN\\"
 		MachineKey		= 'machinekey'
-		AWSKeys			= '\baws(_| |:|=)'
-		#AWSKey			= '(?<![A-Za-z0-9])[A-Z0-9]{20}(?![A-Za-z0-9])'				---> Causing too many false positives
+		AWSAccessKey	= '\bAKIA[A-Z0-9]{16}\b'
 		#AWSSecret		= '(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'	---> Causing too many false positives
 	}
 	
