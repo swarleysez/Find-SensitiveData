@@ -1,7 +1,7 @@
 <#
 	If you need to, here is the sensitive data finder code reduced to 1 line of syntax for PowerShell:
 
-	PS:\> Get-ChildItem -Path '\\<host>\<share>' -File -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
+	PS:\> Get-ChildItem -Path '\\<host>\<share>' -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
 	
 	This doesn't provide any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
 #>
@@ -125,7 +125,7 @@ function Find-SensitiveData {
 		DomainPrefix	= "$env:USERDOMAIN\\"
 		MachineKey		= '\bmachinekey\b'
 		AWSAccessKey	= '\bAKIA[A-Z0-9]{16}\b'
-		SSHKey			= '\s*(\bBEGIN\b).*(PRIVATE KEY\b)\s*'
+		PrivateKey		= '\s*(\bBEGIN\b).*(PRIVATE KEY\b)\s*'
 		#AWSSecret		= 'aws_secret_access_key'
 	}
 	
