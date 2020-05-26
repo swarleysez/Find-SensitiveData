@@ -145,7 +145,7 @@ function Find-SensitiveData {
 	# Execute 'Get-FilePaths' function to generate a list of files to search.
 
 	# Remove previous data files
-	$PreviousData = $BaseDirectory + "\PotentialData-*" + $ShareRootDirectory + '-' + $CurrentUser + '.txt'
+	$PreviousData = $BaseDirectory + "\PotentialData-" + $ShareRootDirectory + '-' + $CurrentUser + '.txt'
 	if (Test-Path -Path $PreviousData)
 	{
 		Remove-Item $PreviousData
