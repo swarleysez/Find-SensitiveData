@@ -74,7 +74,7 @@ function Get-FilePaths {
 
 		# Importing CSV, filtering, and assigning to $FilePaths array
 		$FilePaths = @()
-		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','')
+		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.xml','')
         $FileData = Import-Csv -Path $BaseOutputFile -Delimiter ','
                 
         foreach ($File in $FileData)
