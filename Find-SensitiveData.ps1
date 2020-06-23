@@ -3,7 +3,7 @@
 
 	PS:\> Get-ChildItem -Path '\\<host>\<share>' -Recurse -Include <*.txt> | Select-Object -ExpandProperty FullName | foreach {Select-String $_ -Pattern '<\bpassword\b( |=|:)>'} | Add-Content -Path '<.\passwords.txt>'
 	
-	This doesn't provide really any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
+	This doesn't provide any of the convenience or optimization of the script but it's a lot faster to type or copy/paste
 #>
 
 
@@ -45,26 +45,53 @@ function Get-FilePaths {
 	# Get root directory of specified $SharePath for use in output files
 	$script:ShareRootDirectory = (($SharePath.Split('\'))[2..3]) -join '-'
 
-	# Test if the specified file containing filepaths already exists
-	$script:DefaultOutputFile = "$($BaseDirectory)\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt"
-	$TextFileExist = Test-Path -Path $DefaultOutputFile
-	
+	# Assign file structures
+    $BaseOutputFile = $BaseDirectory + '\FilePaths-ALL-' + $ShareRootDirectory + '-' + $CurrentUser + '.csv'
+    $script:DefaultOutputFile = $BaseDirectory + '\FilePaths-' + $ShareRootDirectory + '-' + $CurrentUser + '.csv'
 
-	# If using -Force or file doesn't exist, then start discovery process
-	if (!$TextFileExist -or $Force)
+    # If using -Force then delete previous CSV files
+    if ($Force)
+    {
+        Remove-Item $BaseOutputFile -ErrorAction SilentlyContinue
+        Remove-Item $DefaultOutputFile -ErrorAction SilentlyContinue
+    }
+
+    # Assign file existence tests
+    $BaseFileExist = Test-Path -Path $BaseOutputFile
+    $DefaultFileExist = Test-Path -Path $DefaultOutputFile
+	
+	# If using file doesn't exist, then start discovery process 
+    if (!$DefaultFileExist)
 	{
-		if ($TextFileExist)
-		{
-			Remove-Item $DefaultOutputFile
-		}
-		
 		# Recursively get ONLY files in provided path under 10MB in size, return the full path to each file, and write to current directory.
 		# Write data to specified filename (Default = '.\FilePaths-$($ShareRootDirectory)-$($CurrentUser).txt') in current directory.
-		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $DefaultOutputFile"
+		Write-Output "[*] $((Get-Date).ToString('T')) : Recursively searching files in $SharePath and adding to $BaseOutputFile"
 		
-		Get-ChildItem -Path ($SharePath + '\*') -Include '*.txt','*.xls','*.bat','*.ps1','*.config','*.cmd','*.xml' -Recurse -ErrorAction SilentlyContinue | Where-Object {[Int64]$_.Length -le 10000000} | Select-Object -ExpandProperty FullName | ForEach-Object {Add-Content -Value $_ -Path $DefaultOutputFile -Encoding UTF8}
-	}
-	else
+        if (!$BaseFileExist)
+        {
+            Get-ChildItem -Path $SharePath -File -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Extension,Length | Export-Csv -Path $BaseOutputFile -Delimiter ',' -Encoding UTF8
+        }
+
+		# Importing CSV, filtering, and assigning to $FilePaths array
+		Write-Output "[*] $((Get-Date).ToString('T')) : Filtering files in $BaseOutputFile adding to the results to $DefaultOutputFile"
+
+		$FilePaths = @()
+		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.pem','.ppk','')
+        $FileData = Import-Csv -Path $BaseOutputFile -Delimiter ','
+                
+        foreach ($File in $FileData)
+        {
+            # Filtering out unwanted file extensions and files larger than 10MB (had to convert System.Object to integer)
+            if (($FileExtensions -contains $File.Extension) -and ([Int64]$File.Length -le 10000000))
+            {
+                $FilePaths += $File
+            }
+		}
+		
+		# Export filtered results to CSV
+		$FilePaths | Export-Csv -Path $DefaultOutputFile -Delimiter ',' -Encoding UTF8
+ 	}
+	elseif ($DefaultFileExist)
 	{
 		Write-Output "[-] $((Get-Date).ToString('T')) : File containing filepaths exists at $DefaultOutputFile. Using that file."
 	}
@@ -98,9 +125,10 @@ function Find-SensitiveData {
 		SSN 			= '\b\d{3}-\d{2}-\d{4}\b'
 		Password 		= '(;|)(?i)\bpassword\b( |)=( |)'
 		DomainPrefix	= "$env:USERDOMAIN\\"
-		MachineKey		= 'machinekey'
+		MachineKey		= '\bmachinekey\b'
 		AWSAccessKey	= '\bAKIA[A-Z0-9]{16}\b'
-		#AWSSecret		= '(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'	---> Causing too many false positives
+		PrivateKey		= '\s*(\bBEGIN\b).*(PRIVATE KEY\b)\s*'
+		#AWSSecret		= 'aws_secret_access_key'
 	}
 	
 	# If $BaseDirectory doesn't exist, then try to create it
@@ -118,17 +146,11 @@ function Find-SensitiveData {
 	}
 
 	# Execute 'Get-FilePaths' function to generate a list of files to search.
+
 	if ($Force)
 	{
-		Get-FilePaths -SharePath $SharePath -BaseDirectory $BaseDirectory -Force
-		
-		# Remove previous data files
-		$PreviousData = "$($BaseDirectory)\PotentialData-*$($ShareRootDirectory)-$CurrentUser.txt"
-		if (Test-Path -Path $PreviousData)
-		{
-			Write-Output "[!] $((Get-Date).ToString('T')) : '-Force' was used. Now removing previous data files"
-			Remove-Item $PreviousData
-		}
+		Write-Output "[!] $((Get-Date).ToString('T')) : '-Force' was used. Now removing previous data files"
+        Get-FilePaths -SharePath $SharePath -BaseDirectory $BaseDirectory -Force
 	}
 	else
 	{
@@ -138,13 +160,21 @@ function Find-SensitiveData {
 	# Get paths/files from generated $DefaultOutputFile.
 	if (Test-Path $DefaultOutputFile)
 	{
-		$FilePaths = Get-Content -Path $DefaultOutputFile
-		
+		# Import CSV
+		$FilePaths = Import-Csv -Path $DefaultOutputFile -Delimiter ','
+        
 		# Loop through each $RegexPatterns
 		foreach ($RegexPattern in $RegexPatterns.GetEnumerator())
 		{
 			Write-Output "[*] $((Get-Date).ToString('T')) : $($RegexPattern.Name) - Search started for pattern"
-						
+
+			# Remove previous data files
+			$PreviousData = $BaseDirectory + "\PotentialData-" + $RegexPattern.Name + '-' + $ShareRootDirectory + '-' + $CurrentUser + '.txt'
+			if (Test-Path -Path $PreviousData)
+			{
+				Remove-Item $PreviousData
+			}
+
 			# Region Runspace Pool
 			[void][runspacefactory]::CreateRunspacePool()
 			$SessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
@@ -154,7 +184,8 @@ function Find-SensitiveData {
 			)
 			$RunspacePool.Open()
 			
-			# Do some trickery to get the proper BeginInvoke() method that allows for an output queue
+            # Do some trickery to get the proper BeginInvoke() method that allows for an output queue
+            # From PowerView code
 			$Method = $Null
 			ForEach ($M in [PowerShell].GetMethods() | Where-Object { $_.Name -eq 'BeginInvoke' })
 			{
@@ -190,12 +221,12 @@ function Find-SensitiveData {
 						$RegexPatternValue						
 					)
 				
-					# Search for regex pattern in file and select only the first match
-					$data = Select-String -Path $FilePath -Pattern $RegexPatternValue | Select-Object -First 1
-					if ($data)
-					{
-						$data
-					}
+                    # Search for regex pattern in file and select only the first match
+                    $data = Select-String -Path $FilePath.FullName -Pattern $RegexPatternValue | Select-Object -First 1
+                    if ($data)
+                    {
+                        $data
+                    }
 				})
 				
 				# Add the script parameters from $ParameterList that will be used in the runspace scriptblock
@@ -287,7 +318,7 @@ function Remove-SensitiveData {
 	Param(
 		[Parameter(Mandatory = $false)]
 		[String[]]
-		$DataFiles = @("PotentialData-*.txt","FilePaths-*.txt"),
+		$DataFiles = @("PotentialData-*.txt","FilePaths-*.csv"),
 		
 		[Parameter(Mandatory = $false)]
 		[String]
