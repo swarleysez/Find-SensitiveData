@@ -76,7 +76,7 @@ function Get-FilePaths {
 		Write-Output "[*] $((Get-Date).ToString('T')) : Filtering files in $BaseOutputFile adding to the results to $DefaultOutputFile"
 
 		$FilePaths = @()
-		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.pem','.ppk','')
+		$FileExtensions = @('.txt','.xls','.csv','.bat','.ps1','.config','.cmd','.pem','.ppk','.ini','.xml','')
         $FileData = Import-Csv -Path $BaseOutputFile -Delimiter ','
                 
         foreach ($File in $FileData)
